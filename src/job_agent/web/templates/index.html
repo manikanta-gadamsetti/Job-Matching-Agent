@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Matching Agent</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Autonomous Job Discovery</p>
+        <h1>Find junior roles that actually fit your profile.</h1>
+        <p class="lede">
+          This dashboard searches public job sources, filters for fresher and 0-1 year roles,
+          ranks matches against your profile, and sends fresh links by email or WhatsApp.
+        </p>
+        <div class="stats">
+          <div class="stat-card">
+            <span class="stat-label">Targets</span>
+            <strong>{{ profile.target_roles|length }}</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Locations</span>
+            <strong>{{ profile.preferred_locations|length }}</strong>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Sent So Far</span>
+            <strong>{{ sent_count }}</strong>
+          </div>
+        </div>
+      </div>
+      <div class="hero-panel">
+        <form action="/run" method="post">
+          <button class="primary-button" type="submit">Run Matching Agent</button>
+        </form>
+        {% if message %}
+        <p class="message">{{ message }}</p>
+        {% endif %}
+        <div class="source-list">
+          <h2>Enabled Sources</h2>
+          <ul>
+            {% for name, source in sources.items() %}
+              {% if source.enabled %}
+              <li>{{ name }}</li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Profile</h2>
+        <p>Update the profile used to match 0-1 year jobs.</p>
+      </div>
+      <form class="profile-form" action="/profile" method="post">
+        <label>
+          <span>Name</span>
+          <input type="text" name="candidate_name" value="{{ profile.candidate_name }}">
+        </label>
+        <label>
+          <span>Email</span>
+          <input type="email" name="email" value="{{ profile.email }}">
+        </label>
+        <label>
+          <span>Phone</span>
+          <input type="text" name="phone" value="{{ profile.phone }}">
+        </label>
+        <label>
+          <span>Total Experience</span>
+          <input type="number" min="0" max="10" name="total_experience_years" value="{{ profile.total_experience_years }}">
+        </label>
+        <label class="full">
+          <span>Target Roles</span>
+          <textarea name="target_roles">{{ profile.target_roles|join('\n') }}</textarea>
+        </label>
+        <label class="full">
+          <span>Preferred Locations</span>
+          <textarea name="preferred_locations">{{ profile.preferred_locations|join('\n') }}</textarea>
+        </label>
+        <label class="full">
+          <span>Certifications</span>
+          <textarea name="certifications">{{ profile.certifications|join('\n') }}</textarea>
+        </label>
+        <label class="full">
+          <span>Experience Highlights</span>
+          <textarea name="experience_highlights">{{ profile.experience_highlights|join('\n') }}</textarea>
+        </label>
+        <button class="secondary-button" type="submit">Save Profile</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Latest Fresh Matches</h2>
+        <p>New jobs found in the most recent run.</p>
+      </div>
+      {% if jobs %}
+      <div class="jobs-grid">
+        {% for job in jobs %}
+        <article class="job-card">
+          <p class="job-source">{{ job.source }}</p>
+          <h3>{{ job.title }}</h3>
+          <p>{{ job.company }} · {{ job.location }}</p>
+          <p>Score {{ "%.1f"|format(job.score) }}</p>
+          <a href="{{ job.url }}" target="_blank" rel="noreferrer">Open listing</a>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="empty-state">Run the agent to fetch and send fresh matches.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,95 @@
+profile:
+  candidate_name: "Your Name"
+  email: "you@example.com"
+  phone: "+91-XXXXXXXXXX"
+  total_experience_years: 1
+  target_roles:
+    - "Cloud Engineer"
+    - "DevOps Engineer"
+    - "AI Analyst"
+  preferred_locations:
+    - "Hyderabad"
+    - "Remote"
+  certifications:
+    - "Azure Data Engineering"
+    - "OCI Multi-Cloud Architect Professional"
+  experience_highlights:
+    - "AI Analyst focused on model optimization and dataset engineering"
+    - "Internship experience managing infrastructure uptime and ticket resolution"
+  base_resume_path: "data/resumes/base_resume.md"
+
+search:
+  keywords:
+    - "Cloud Engineer"
+    - "DevOps Engineer"
+    - "AI Analyst"
+    - "Site Reliability Engineer"
+    - "Platform Engineer"
+  locations:
+    - "Hyderabad"
+    - "Remote"
+  remote_only: false
+  max_experience_years: 1
+  include_freshers: true
+  max_jobs_per_source: 20
+
+llm:
+  model: "gpt-4.1-mini"
+  temperature: 0.2
+
+sources:
+  serpapi:
+    enabled: false
+    boards:
+      - "linkedin jobs"
+      - "naukri jobs"
+      - "indeed jobs"
+    note: "Uses search queries to discover public job pages across sites and career pages."
+  greenhouse:
+    enabled: true
+    boards:
+      - "https://boards.greenhouse.io/embed/job_board?for=hashicorp"
+  lever:
+    enabled: true
+    boards:
+      - "https://jobs.lever.co/redis"
+  careers:
+    enabled: true
+    boards:
+      - "https://careers.google.com/jobs/results/"
+      - "https://jobs.careers.microsoft.com/global/en/search"
+    note: "Best effort parser for public company career pages."
+  linkedin:
+    enabled: false
+    note: "Use only with manual login and platform-compliant browser assistance."
+  naukri:
+    enabled: false
+    note: "Use only with manual login and platform-compliant browser assistance."
+  indeed:
+    enabled: false
+    note: "Use search discovery or manual browser assistance; direct scraping may be restricted."
+
+automation:
+  browser_headless: false
+  storage_state_path: "data/sessions/browser_state.json"
+  require_human_review_before_submit: true
+  auto_submit_safe_forms: false
+
+notifications:
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    smtp_username: "you@example.com"
+    smtp_password_env: "JOB_AGENT_EMAIL_PASSWORD"
+    from_address: "you@example.com"
+    to_addresses:
+      - "you@example.com"
+  whatsapp:
+    enabled: false
+    provider: "twilio"
+    account_sid_env: "TWILIO_ACCOUNT_SID"
+    auth_token_env: "TWILIO_AUTH_TOKEN"
+    from_number: "whatsapp:+14155238886"
+    to_numbers:
+      - "whatsapp:+91XXXXXXXXXX"

@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: job-matching-agent
+    runtime: docker
+    plan: free
+    autoDeploy: true
