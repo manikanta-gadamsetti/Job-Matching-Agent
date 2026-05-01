@@ -3,10 +3,13 @@ from __future__ import annotations
 from urllib.parse import urlparse
 
 import httpx
-from bs4 import BeautifulSoup
 
 from job_agent.models import JobPosting, SearchConfig
 from job_agent.providers.base import JobSourceProvider
+
+HTTP_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; JobMatchingAgent/0.1; +https://github.com/manikanta-gadamsetti/Job-Matching-Agent)"
+}
 
 
 class LeverProvider(JobSourceProvider):
@@ -18,20 +21,19 @@ class LeverProvider(JobSourceProvider):
     def fetch_jobs(self, search: SearchConfig) -> list[JobPosting]:
         jobs: list[JobPosting] = []
         for board in self.boards:
-            response = httpx.get(board, timeout=20.0, follow_redirects=True)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
             company = urlparse(board).path.strip("/").split("/")[-1] or "unknown"
-            for posting in soup.select("[class*=posting]"):
-                title_el = posting.select_one("[class*=posting-title], [data-qa=posting-name]")
-                link_el = posting.select_one("a[href]")
-                meta_el = posting.select_one("[class*=posting-categories], [class*=posting-category]")
-                if not title_el or not link_el:
+            api_url = f"https://api.lever.co/v0/postings/{company}?mode=json"
+            response = httpx.get(api_url, headers=HTTP_HEADERS, timeout=20.0, follow_redirects=True)
+            response.raise_for_status()
+            payload = response.json()
+            for posting in payload:
+                title = posting.get("text", "").strip()
+                categories = posting.get("categories", {})
+                location = categories.get("location", "Unknown") if isinstance(categories, dict) else "Unknown"
+                job_url = posting.get("hostedUrl", "")
+                description = posting.get("descriptionPlain") or posting.get("description") or ""
+                if not title or not job_url:
                     continue
-                title = title_el.get_text(" ", strip=True)
-                location = meta_el.get_text(" ", strip=True) if meta_el else "Unknown"
-                href = link_el.get("href", "")
-                job_url = href if href.startswith("http") else f"https://jobs.lever.co{href}"
                 if not _matches_search(title, location, search):
                     continue
                 jobs.append(
@@ -41,21 +43,13 @@ class LeverProvider(JobSourceProvider):
                         company=company.title(),
                         location=location,
                         url=job_url,
-                        description=_fetch_description(job_url),
+                        description=description[:15000],
                         remote="remote" in location.lower(),
                     )
                 )
                 if len(jobs) >= search.max_jobs_per_source:
                     break
         return jobs
-
-
-def _fetch_description(job_url: str) -> str:
-    response = httpx.get(job_url, timeout=20.0, follow_redirects=True)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
-    body = soup.get_text("\n", strip=True)
-    return body[:15000]
 
 
 def _matches_search(title: str, location: str, search: SearchConfig) -> bool:
