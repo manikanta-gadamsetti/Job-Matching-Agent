@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
 from rich.console import Console
 
 from job_agent.automation import BrowserApplicator
@@ -23,7 +24,12 @@ def collect_matches(config: AppConfig) -> MatchRunResult:
     jobs: list[JobPosting] = []
     for provider in providers:
         console.print(f"[cyan]Fetching jobs from {provider.source_name}[/cyan]")
-        jobs.extend(provider.fetch_jobs(config.search))
+        try:
+            jobs.extend(provider.fetch_jobs(config.search))
+        except httpx.HTTPError as exc:
+            console.print(f"[yellow]Skipping {provider.source_name}: {exc}[/yellow]")
+        except Exception as exc:
+            console.print(f"[yellow]Skipping {provider.source_name} due to unexpected error: {exc}[/yellow]")
 
     ranked = sorted(
         (score_job(job, config.profile, config.search) for job in jobs),
@@ -92,36 +98,3 @@ def _build_providers(config: AppConfig):
 
     careers = config.sources.get("careers")
     if careers and careers.enabled:
-        providers.append(CareersPageProvider(careers.boards))
-
-    serpapi = config.sources.get("serpapi")
-    if serpapi and serpapi.enabled:
-        providers.append(SerpApiProvider(serpapi.boards, config.profile))
-
-    return providers
-
-
-def _dedupe_jobs(jobs: list[JobPosting]) -> list[JobPosting]:
-    unique: dict[str, JobPosting] = {}
-    for job in jobs:
-        key = f"{job.title.lower().strip()}|{job.company.lower().strip()}|{job.url.strip()}"
-        existing = unique.get(key)
-        if existing is None or job.score > existing.score:
-            unique[key] = job
-    return list(unique.values())
-
-
-def _send_notifications_if_needed(config: AppConfig, result: MatchRunResult) -> None:
-    fresh_jobs = result.fresh_jobs
-    if not fresh_jobs:
-        return
-
-    digest = build_digest(config.profile.candidate_name, fresh_jobs[: min(10, len(fresh_jobs))])
-    NotificationDispatcher(config.notifications).send(digest)
-    sent_store = Path("data/jobs/sent_jobs.json")
-    sent_urls = load_sent_job_urls(sent_store)
-    sent_urls.update(job.url for job in fresh_jobs)
-    save_sent_job_urls(sent_urls, sent_store)
-    console.print("[green]Sent notifications for new matching jobs.[/green]")
-    result.sent_count = len(fresh_jobs)
-    result.notifications_sent = True
