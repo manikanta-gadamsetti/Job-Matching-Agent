@@ -1,3 +1,53 @@
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+import streamlit as st
+import yaml
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+SRC_DIR = PROJECT_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from job_agent.config import load_config
+from job_agent.pipeline import collect_matches, notify_matches
+from job_agent.storage import load_sent_job_urls
+
+CONFIG_PATH = Path("config.yaml")
+SENT_PATH = Path("data/jobs/sent_jobs.json")
+
+
+def main() -> None:
+    st.set_page_config(
+        page_title="Job Matching Agent",
+        page_icon="briefcase",
+        layout="wide",
+    )
+
+    st.title("Job Matching Agent")
+    st.caption("Find fresher and 0-1 year roles from public job sources and send fresh matches to email or WhatsApp.")
+
+    _, config = load_config()
+    sent_count = len(load_sent_job_urls(SENT_PATH))
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Target Roles", len(config.profile.target_roles))
+    col2.metric("Preferred Locations", len(config.profile.preferred_locations))
+    col3.metric("Sent Jobs", sent_count)
+
+    with st.sidebar:
+        st.header("Profile")
+        candidate_name = st.text_input("Name", value=config.profile.candidate_name)
+        email = st.text_input("Email", value=config.profile.email)
+        phone = st.text_input("Phone", value=config.profile.phone)
+        total_experience_years = st.number_input(
+            "Total Experience (Years)",
+            min_value=0,
+            max_value=10,
+            value=config.profile.total_experience_years,
+            step=1,
         )
         target_roles = st.text_area("Target Roles", value="\n".join(config.profile.target_roles), height=120)
         preferred_locations = st.text_area(
