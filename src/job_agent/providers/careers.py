@@ -18,8 +18,18 @@ class CareersPageProvider(JobSourceProvider):
     def fetch_jobs(self, search: SearchConfig) -> list[JobPosting]:
         jobs: list[JobPosting] = []
         for page_url in self.pages:
-            response = httpx.get(page_url, timeout=20.0, follow_redirects=True)
-            response.raise_for_status()
+            try:
+                response = httpx.get(
+                    page_url,
+                    timeout=20.0,
+                    follow_redirects=True,
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (compatible; JobMatchingAgent/0.1; +https://github.com/manikanta-gadamsetti/Job-Matching-Agent)"
+                    },
+                )
+                response.raise_for_status()
+            except httpx.HTTPError:
+                continue
             soup = BeautifulSoup(response.text, "html.parser")
             company = urlparse(page_url).netloc.replace("www.", "")
             for link in soup.select("a[href]"):
